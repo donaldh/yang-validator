@@ -25,24 +25,23 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 public class YangValidator {
-	
-	public static void main(String[] args) {
-	    
-	    if (args.length < 2) {
-	        System.err.println("Usage is: YangValidator <schema-dir> <yang-file>");
-	        System.exit(1);
-	    }
-	    
-	    final String schemaDir = args[0];
-	    final String yangfile = args[1];
-		
+
+    public static void main(String[] args) {
+        if (args.length < 2) {
+            System.err.println("Usage is: YangValidator <schema-dir> <yang-file>");
+            System.exit(1);
+        }
+
+        final String schemaDir = args[0];
+        final String yangfile = args[1];
+
         try {
             YangTextSchemaContextResolver resolver = YangTextSchemaContextResolver.create("resolver");
-	    
+
             for (File f : new File(schemaDir).listFiles()) {
                 resolver.registerSource(f.toURI().toURL());
             }
-            
+
             SchemaContext schema = resolver.getSchemaContext().get();
 
             Map<String, DataSchemaNode> modulesByNodeName = new HashMap<>();
@@ -54,11 +53,11 @@ public class YangValidator {
                 }
             }
 
-			XmlCodecProvider codecProvider = DomUtils.defaultValueCodecProvider();
-			DomToNormalizedNodeParserFactory f = DomToNormalizedNodeParserFactory.getInstance(codecProvider, schema);
-			ToNormalizedNodeParser<Element, ContainerNode, ContainerSchemaNode> parser = f.getContainerNodeParser();
+            XmlCodecProvider codecProvider = DomUtils.defaultValueCodecProvider();
+            DomToNormalizedNodeParserFactory f = DomToNormalizedNodeParserFactory.getInstance(codecProvider, schema);
+            ToNormalizedNodeParser<Element, ContainerNode, ContainerSchemaNode> parser = f.getContainerNodeParser();
 
-			DocumentBuilderFactory namespaceFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilderFactory namespaceFactory = DocumentBuilderFactory.newInstance();
             namespaceFactory.setNamespaceAware(true);
             DocumentBuilder builder = namespaceFactory.newDocumentBuilder();
             InputStream is = new FileInputStream(new File(yangfile));
@@ -69,11 +68,11 @@ public class YangValidator {
 
             DataSchemaNode schemaNode = modulesByNodeName.get(nodeName);
             ContainerNode c = parser.parse(Collections.singletonList(root), (ContainerSchemaNode) schemaNode);
-            
+
             System.out.println(c);
 
-		} catch (Throwable t) {
-			System.err.println(t.getClass().getName() + " : " + t.getMessage());
-		}
-	}
+        } catch (Throwable t) {
+            System.err.println(t.getClass().getName() + " : " + t.getMessage());
+        }
+    }
 }
