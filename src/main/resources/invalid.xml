@@ -1,0 +1,18 @@
+<network-topology xmlns="urn:TBD:params:xml:ns:yang:network-topology">
+  <topology>
+    <topology-id>totally-topological</topology-id>
+    <topology-types>
+      <l3-unicast-igp-topology xmlns="urn:TBD:params:xml:ns:yang:nt:l3-unicast-igp-topology">
+      </l3-unicast-igp-topology>
+    </topology-types>
+    <node>
+      <node-id>funky-node</node-id>
+      <termination-point>
+        <tp-id>GigabitEthernet0/0/0/0</tp-id>
+        <igp-termination-point-attributes xmlns="urn:TBD:params:xml:ns:yang:nt:l3-unicast-igp-topology">
+          <unnumbered>0</unnumbered>
+        </igp-termination-point-attributes>
+      </termination-point>
+    </node>
+  </topology>
+</network-topology>
