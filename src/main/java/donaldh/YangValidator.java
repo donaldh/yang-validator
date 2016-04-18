@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,6 +19,8 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.opendaylight.yangtools.yang.data.api.schema.ContainerNode;
+import org.opendaylight.yangtools.yang.data.api.schema.MapNode;
+import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.impl.codec.xml.XmlCodecProvider;
 import org.opendaylight.yangtools.yang.data.impl.schema.transform.ToNormalizedNodeParser;
 import org.opendaylight.yangtools.yang.data.impl.schema.transform.dom.DomUtils;
@@ -25,6 +28,7 @@ import org.opendaylight.yangtools.yang.data.impl.schema.transform.dom.parser.Dom
 import org.opendaylight.yangtools.yang.data.impl.schema.transform.dom.serializer.DomFromNormalizedNodeSerializerFactory;
 import org.opendaylight.yangtools.yang.model.api.ContainerSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
+import org.opendaylight.yangtools.yang.model.api.ListSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.Module;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.parser.repo.YangTextSchemaContextResolver;
@@ -75,26 +79,41 @@ public class YangValidator {
             // Look up the schema node for the root element
             Element root = d.getDocumentElement();
             String nodeName = root.getLocalName();
-            ContainerSchemaNode schemaNode = (ContainerSchemaNode) modulesByNodeName.get(nodeName);
-
+            DataSchemaNode schemaNode = modulesByNodeName.get(nodeName);
+            List<Element> elements = Collections.singletonList(root);
+            NormalizedNode<?, ?> n = null;
+            
             // Parse
-            ContainerNode c = parser.parse(Collections.singletonList(root), schemaNode);
+            if (schemaNode instanceof ContainerSchemaNode) {
+                n = f.getContainerNodeParser().parse(elements, (ContainerSchemaNode) schemaNode);
+            } else if (schemaNode instanceof ListSchemaNode) {
+                n = f.getOrderedListNodeParser().parse(elements, (ListSchemaNode) schemaNode);
+            } else {
+                throw new RuntimeException("Unable to parse " + schemaNode.getClass().getSimpleName());
+            }
 
-            System.out.println(c.getIdentifier());
-            System.out.println(c);
+            System.out.println(n.getIdentifier());
+            System.out.println(n);
 
             // Serialize back to XML dom
             Document doc = documentBuilderFactory.newDocumentBuilder().newDocument();
             DomFromNormalizedNodeSerializerFactory serializerFactory = DomFromNormalizedNodeSerializerFactory
                     .getInstance(doc, DomUtils.defaultValueCodecProvider());
-            Iterable<Element> iterable = serializerFactory.getContainerNodeSerializer().serialize(schemaNode, c);
+            Iterable<Element> iterable;
+            if (n instanceof ContainerNode) {
+                iterable = serializerFactory.getContainerNodeSerializer().serialize((ContainerSchemaNode) schemaNode, (ContainerNode) n);
+            } else if (n instanceof MapNode) {
+                iterable = serializerFactory.getMapNodeSerializer().serialize((ListSchemaNode) schemaNode, (MapNode) n);
+            } else {
+                throw new RuntimeException("Unable to serialize " + n.getClass().getSimpleName());
+            }
             Element e = iterable.iterator().next();
 
             // Pretty print the XML
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty("{http://xml.apache.org/xalan}indent-amount", "4");
+            transformer.setOutputProperty("{http://xml.apache.org/xalan}indent-amount", "2");
             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
