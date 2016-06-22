@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -22,7 +24,6 @@ import org.opendaylight.yangtools.yang.data.api.schema.ContainerNode;
 import org.opendaylight.yangtools.yang.data.api.schema.MapNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.impl.codec.xml.XmlCodecProvider;
-import org.opendaylight.yangtools.yang.data.impl.schema.transform.ToNormalizedNodeParser;
 import org.opendaylight.yangtools.yang.data.impl.schema.transform.dom.DomUtils;
 import org.opendaylight.yangtools.yang.data.impl.schema.transform.dom.parser.DomToNormalizedNodeParserFactory;
 import org.opendaylight.yangtools.yang.data.impl.schema.transform.dom.serializer.DomFromNormalizedNodeSerializerFactory;
@@ -42,6 +43,9 @@ public class YangValidator {
             System.err.println("Usage is: YangValidator <schema-dir> <yang-file>");
             System.exit(1);
         }
+        
+        Logger logger = Logger.getLogger("org.opendaylight.yangtools");
+        logger.setLevel(Level.WARNING);
 
         final String schemaDir = args[0];
         final String yangFile = args[1];
@@ -67,7 +71,6 @@ public class YangValidator {
             // Get a parser
             XmlCodecProvider codecProvider = DomUtils.defaultValueCodecProvider();
             DomToNormalizedNodeParserFactory f = DomToNormalizedNodeParserFactory.getInstance(codecProvider, schema);
-            ToNormalizedNodeParser<Element, ContainerNode, ContainerSchemaNode> parser = f.getContainerNodeParser();
 
             // Read the source XML file
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -83,6 +86,10 @@ public class YangValidator {
             List<Element> elements = Collections.singletonList(root);
             NormalizedNode<?, ?> n = null;
             
+            if (schemaNode == null) {
+                throw new RuntimeException("Cannot find a schema for " + nodeName);
+            }
+            
             // Parse
             if (schemaNode instanceof ContainerSchemaNode) {
                 n = f.getContainerNodeParser().parse(elements, (ContainerSchemaNode) schemaNode);
@@ -91,9 +98,6 @@ public class YangValidator {
             } else {
                 throw new RuntimeException("Unable to parse " + schemaNode.getClass().getSimpleName());
             }
-
-            System.out.println(n.getIdentifier());
-            System.out.println(n);
 
             // Serialize back to XML dom
             Document doc = documentBuilderFactory.newDocumentBuilder().newDocument();
