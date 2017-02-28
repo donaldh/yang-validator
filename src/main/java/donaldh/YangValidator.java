@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -53,7 +54,7 @@ public class YangValidator {
 
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.err.println("Usage is: YangValidator <schema-dir> <yang-file>");
+            System.err.println("Usage is: YangValidator <schema-dir> <yang-file ...>");
             System.exit(1);
         }
 
@@ -61,12 +62,14 @@ public class YangValidator {
         logger.setLevel(Level.WARNING);
 
         final String schemaDir = args[0];
-        final String yangFile = args[1];
 
         try {
             YangValidator validator = new YangValidator(schemaDir);
-            SchemaNodePair parsed = validator.parse(yangFile);
-            validator.generate(parsed);
+            for (String yangFile : Arrays.copyOfRange(args, 1, args.length)) {
+                System.out.println("Parsing " + yangFile);
+                SchemaNodePair parsed = validator.parse(yangFile);
+                validator.generate(parsed);
+            }
         } catch (Throwable t) {
             System.err.println(t.getClass().getName() + " : " + t.getMessage());
         }
